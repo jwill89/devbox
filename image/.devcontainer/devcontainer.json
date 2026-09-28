@@ -1,0 +1,93 @@
+// devbox image definition. CI builds this into ghcr.io/jwill89/devbox.
+// Everything below (features, extensions, settings, mounts, env) is baked into the
+// image's metadata, so each project's own devcontainer.json only has to name the image.
+{
+  "name": "devbox",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": { "PHP_VERSION": "${localEnv:PHP_VERSION:8.5}" }
+  },
+
+  // Runtime versions are pinned to a major/minor line on purpose. The weekly rebuild
+  // picks up patch releases; moving to a new line is a one-line commit here.
+  "features": {
+    "ghcr.io/devcontainers/features/node:2": {
+      "version": "24",
+      "pnpmVersion": "12"
+    },
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.27"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "remoteUser": "vscode",
+
+  // Shared caches, so new projects and rebuilds don't download everything again.
+  // Named volumes live in Docker, not in any one project.
+  "mounts": [
+    { "source": "devbox-cache", "target": "/home/vscode/.cache", "type": "volume" },
+    { "source": "devbox-pnpm", "target": "/home/vscode/.local/share/pnpm", "type": "volume" }
+  ],
+
+  // Set here, not as Dockerfile ENV: features run after the Dockerfile, and ENV
+  // would make them write root-owned files into the cache paths at build time.
+  "containerEnv": {
+    "GOMODCACHE": "/home/vscode/.cache/go-mod",
+    "COMPOSER_CACHE_DIR": "/home/vscode/.cache/composer",
+    "npm_config_cache": "/home/vscode/.cache/npm",
+    "PIP_CACHE_DIR": "/home/vscode/.cache/pip",
+    // post-create.sh installs this pnpm major when a project's .nvmrc picks another Node.
+    "DEVBOX_PNPM_VERSION": "12"
+  },
+
+  "customizations": {
+    "vscode": {
+      // Language tooling for the stack. Personal extensions (Claude Code, GitLens,
+      // Database Client...) go in your own dev.containers.defaultExtensions setting.
+      "extensions": [
+        "Vue.volar",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "vitest.explorer",
+        "golang.go",
+        "bmewburn.vscode-intelephense-client",
+        "xdebug.php-debug",
+        "recca0120.vscode-phpunit",
+        "ms-python.python",
+        "EditorConfig.EditorConfig"
+      ],
+      "settings": {
+        "files.watcherExclude": {
+          "**/.git/objects/**": true,
+          "**/node_modules/**": true,
+          "**/vendor/**": true,
+          "**/dist/**": true,
+          "**/coverage/**": true,
+          "**/storage/framework/**": true,
+          "**/bootstrap/cache/**": true
+        },
+        "search.exclude": {
+          "**/node_modules": true,
+          "**/vendor": true,
+          "**/dist": true,
+          "**/coverage": true
+        },
+        // Intelephense replaces VS Code's built-in PHP suggestions and validation.
+        "php.suggest.basic": false,
+        "php.validate.enable": false,
+        // One formatter per language. Whether to format on save stays your choice.
+        "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[vue]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[jsonc]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[scss]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[html]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[php]": { "editor.defaultFormatter": "bmewburn.vscode-intelephense-client" },
+        "[go]": { "editor.defaultFormatter": "golang.go" }
+      }
+    }
+  }
+}

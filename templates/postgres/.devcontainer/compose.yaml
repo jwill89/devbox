@@ -1,0 +1,38 @@
+services:
+  app:
+    image: ghcr.io/jwill89/devbox:php8.5
+    command: sleep infinity
+    volumes:
+      # The folder above this project (~/code), so the project appears at
+      # /workspaces/<project-name>. Don't mount the devbox cache volumes here:
+      # the image already mounts them (the names below make them shared).
+      - ../..:/workspaces:cached
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: app
+      DB_USERNAME: app
+      DB_PASSWORD: app
+      DATABASE_URL: postgres://app:app@db:5432/app?sslmode=disable
+    depends_on: [db]
+
+  db:
+    # Keep this major in step with PG_CLIENT_MAJOR in the devbox Dockerfile.
+    image: postgres:18
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    volumes:
+      # Postgres 18+ keeps data under /var/lib/postgresql. Mounting the old
+      # .../data path makes Docker use a throwaway volume and data is lost on recreate.
+      - db-data:/var/lib/postgresql
+
+volumes:
+  db-data:
+  # Without a fixed name Compose would make per-project copies of these caches.
+  devbox-cache:
+    name: devbox-cache
+  devbox-pnpm:
+    name: devbox-pnpm

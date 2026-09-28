@@ -1,0 +1,7 @@
+# Personal shell setup, applied in Ubuntu and in every dev container.
+# Change it here and push; containers pick it up on their next rebuild.
+
+alias ll='ls -alF'
+alias ..='cd ..'
+alias gs='git status -sb'
+alias gl='git log --oneline --graph --decorate -20'

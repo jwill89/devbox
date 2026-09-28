@@ -1,0 +1,83 @@
+name: Build devbox image
+
+on:
+  push:
+    branches: [main]
+    paths: ["image/**", ".github/workflows/build.yml"]
+  pull_request:
+    paths: ["image/**", ".github/workflows/build.yml"]
+  schedule:
+    - cron: "23 8 * * 1"  # Mondays: fresh base image, OS security fixes, runtime patch releases
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.5"
+            extra_tags: "latest"
+          - php: "8.4"
+            extra_tags: ""
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Work out tags
+        id: tags
+        run: |
+          day="$(date -u +%Y.%m.%d)"
+          tags="php${{ matrix.php }},php${{ matrix.php }}-${day}"
+          if [ -n "${{ matrix.extra_tags }}" ]; then tags="${tags},${{ matrix.extra_tags }}"; fi
+          echo "list=${tags}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build, smoke-test and push
+        uses: devcontainers/ci@v0.3
+        env:
+          # Read by ${localEnv:PHP_VERSION} in image/.devcontainer/devcontainer.json
+          PHP_VERSION: ${{ matrix.php }}
+        with:
+          subFolder: image
+          imageName: ghcr.io/${{ github.repository_owner }}/devbox
+          imageTag: ${{ steps.tags.outputs.list }}
+          cacheFrom: ghcr.io/${{ github.repository_owner }}/devbox:php${{ matrix.php }}
+          noCache: ${{ github.event_name == 'schedule' }}
+          # Pull requests (including Dependabot's) build and test but never push.
+          # (One value per line: the action splits these on newlines, not commas.)
+          push: filter
+          refFilterForPush: refs/heads/main
+          eventFilterForPush: |
+            push
+            schedule
+            workflow_dispatch
+          runCmd: |
+            set -e
+            php -v
+            for m in pdo_mysql mysqli pdo_pgsql pdo_sqlite intl zip bcmath gd xdebug; do
+              php -m | grep -qix "$m" || { echo "PHP extension missing: $m"; exit 1; }
+            done
+            composer --version
+            go version
+            node -v
+            npm -v
+            pnpm -v
+            python3 --version
+            gh --version
+            psql --version
+            mysql --version
+            sqlite3 --version

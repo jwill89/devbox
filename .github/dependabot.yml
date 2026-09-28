@@ -1,0 +1,12 @@
+# Opens pull requests when a dev container feature or a GitHub Action has a new major
+# version. The build workflow tests each PR without pushing an image. Merge to ship it.
+version: 2
+updates:
+  - package-ecosystem: devcontainers
+    directory: /image
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

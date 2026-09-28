@@ -1,0 +1,11 @@
+// Project dev container: devbox image plus a MySQL server.
+// Copied from ~/code/devbox/templates/mysql.
+{
+  "name": "${localWorkspaceFolderBasename}",
+  "dockerComposeFile": "compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  // Lets Windows tools (DBeaver etc.) reach the database at localhost:3306.
+  "forwardPorts": ["db:3306"],
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
+}

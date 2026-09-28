@@ -1,0 +1,7 @@
+// Project dev container: devbox image only. Use for SQLite projects, or anything
+// without a database server. Copied from ~/code/devbox/templates/sqlite.
+{
+  "name": "${localWorkspaceFolderBasename}",
+  "image": "ghcr.io/jwill89/devbox:php8.5",
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
+}
